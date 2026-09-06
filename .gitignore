@@ -1,0 +1,10 @@
+__pycache__
+rpa_data/img
+rpa_data/task1
+.venv
+*.log
+
+# PyInstaller 构建产物
+build/
+dist/
+*.spec.bak
