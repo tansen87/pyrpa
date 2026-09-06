@@ -1415,7 +1415,25 @@ def ThreadShowUIAndManageEvent():
     Combobox_3.bind('<<ComboboxSelected>>', on_theme_selected)
 
     def close():
-        sys.exit()
+        # UI 运行在独立线程, 仅 sys.exit()/quit() 无法让整个进程退出:
+        # 主线程 main() 的 while 1 死循环、状态标签线程的 root.mainloop、
+        # keyboard 库的非守护钩子线程都会继续占据进程, 导致点关闭后"挂起".
+        # 因此这里做最小清理后强制结束进程, 保证确实关闭。
+        global running
+        running = 0
+        try:
+            keyboard.unhook_all()  # 移除热键与钩子线程
+        except Exception:
+            pass
+        try:
+            Top.quit()  # 结束当前 Tk mainloop
+        except Exception:
+            pass
+        try:
+            Top.destroy()
+        except Exception:
+            pass
+        os._exit(0)
 
     Top.protocol("WM_DELETE_WINDOW", close)
     Top.mainloop()
