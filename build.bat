@@ -1,7 +1,7 @@
 @echo off
 setlocal enabledelayedexpansion
 chcp 65001 >nul
-title PyRPA - PyInstaller 打包
+title PyRPA - PyInstaller Build
 cd /d "%~dp0"
 
 set "SRC_DIR=%~dp0"
@@ -9,58 +9,59 @@ set "VENV_PY=%SRC_DIR%.venv\Scripts\python.exe"
 set "DIST_DIR=%SRC_DIR%dist\pyrpa"
 
 echo ============================================
-echo  PyRPA 一键打包 (PyInstaller OneDir)
+echo  PyRPA one-click build (PyInstaller OneDir)
 echo ============================================
 
-REM ---------- 步骤1: 定位 Python ----------
+REM ---------- Step 1: Locate Python ----------
 set "PY=%VENV_PY%"
 if not exist "%PY%" (
-    echo [警告] 未找到项目虚拟环境: %VENV_PY%
+    echo [WARN] Project venv not found: %VENV_PY%
     set PY=python
 )
-echo 使用 Python: %PY%
+echo Using Python: %PY%
 "%PY%" --version || goto :err
 
-REM ---------- 步骤2: 安装/升级 PyInstaller ----------
+REM ---------- Step 2: Install/Upgrade PyInstaller ----------
 echo.
-echo [步骤2] 安装 / 升级 PyInstaller ...
+echo [Step 2] Install / Upgrade PyInstaller ...
 where uv >nul 2>nul && (
-    echo   使用 uv 安装 PyInstaller ...
+    echo   Installing PyInstaller with uv ...
     uv pip install --python "%PY%" "pyinstaller>=6.0" || goto :err
 ) || (
     "%PY%" -m pip install --upgrade "pyinstaller>=6.0" || goto :err
 )
 
-REM ---------- 步骤3: 清理旧产物 ----------
+REM ---------- Step 3: Clean old artifacts ----------
 echo.
-echo [步骤3] 清理旧构建产物 ...
+echo [Step 3] Cleaning old build artifacts ...
 if exist "%SRC_DIR%build" rmdir /s /q "%SRC_DIR%build"
 if exist "%SRC_DIR%dist" rmdir /s /q "%SRC_DIR%dist"
 
-REM ---------- 步骤4: 执行打包 ----------
+REM ---------- Step 4: Run PyInstaller ----------
 echo.
-echo [步骤4] 执行 PyInstaller 打包 (pyrpa.spec) ...
+echo [Step 4] Running PyInstaller build (pyrpa.spec) ...
 "%PY%" -m PyInstaller --noconfirm --clean "%SRC_DIR%pyrpa.spec" || goto :err
 
-REM ---------- 步骤5: 附带运行时数据(配置/示例任务) ----------
-REM 打包后 rpa_data 为 exe 旁可写数据目录, 不随程序内嵌; 把源码中的
-REM 默认配置与示例任务复制过去, 保证首次运行开箱即用。
+REM ---------- Step 5: Copy runtime data (config/example tasks) ----------
+REM After packaging, rpa_data is a writable data directory beside the exe; it is
+REM not bundled inside the program. Copy the source default config and example
+REM tasks there so first run works out of the box.
 echo.
-echo [步骤5] 复制默认运行时数据到输出目录 ...
+echo [Step 5] Copying default runtime data to output directory ...
 if not exist "%DIST_DIR%\rpa_data" (
     xcopy /e /i /y "%SRC_DIR%rpa_data" "%DIST_DIR%\rpa_data" >nul
 ) else (
-    echo     输出目录已存在 rpa_data, 跳过(避免覆盖用户数据)。
+    echo     Output dir already has rpa_data, skipped to avoid overwriting user data.
 )
 
 echo.
 echo ============================================
-echo  打包完成!
-echo  输出目录: %DIST_DIR%
+echo  Build finished!
+echo  Output directory: %DIST_DIR%
 echo ============================================
 goto :eof
 
 :err
 echo.
-echo [错误] 打包失败, 请检查上方输出。
+echo [ERROR] Build failed, please check the output above.
 exit /b 1
